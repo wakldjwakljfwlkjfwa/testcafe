@@ -1,0 +1,17 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8002:80"
+    volumes:
+      - .:/app
+      - ./nginx.conf:/etc/nginx/sites-available/default
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+    volumes:
+      - ./migrations/up.sql:/docker-entrypoint-initdb.d/up.sql

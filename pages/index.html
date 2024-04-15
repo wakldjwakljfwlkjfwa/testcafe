@@ -1,0 +1,225 @@
+<html>
+
+<head>
+	<title>Check form</title>
+	<style>
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		.container {
+			border: 1px solid darkgrey;
+			background: lightgrey;
+			padding: 40px;
+			max-width: 600px;
+			margin: 0 auto;
+			display: flex;
+			flex-direction: column;
+			gap: 50px;
+		}
+
+		#userAddForm {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+		}
+
+		#userAddForm input[type="text"] {
+			padding: 8px;
+		}
+
+		#userAddForm input[type="submit"] {
+			background: lightgreen;
+			border: 1px solid darkgreen;
+			padding: 8px;
+			border-radius: 5px;
+			font-weight: bold;
+		}
+
+		#userAddForm input[type="submit"]:hover {
+			background: green;
+		}
+
+		#userAddForm input[type="submit"]:active {
+			background: darkgreen;
+		}
+
+		#usersContainer {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+		}
+
+		#usersContainer button {
+			background: orangered;
+			border: 1px solid darkred;
+			padding: 8px;
+			border-radius: 5px;
+			font-weight: bold;
+			width: 100%;
+		}
+
+		#usersContainer button:hover {
+			background: red;
+		}
+
+		#usersContainer button:active {
+			background: darkred;
+		}
+
+		#users {
+			width: 100%;
+			border-collapse: collapse;
+		}
+
+		#users th,
+		#users td {
+			padding: 8px;
+			text-align: left;
+			border-bottom: 1px solid #ddd;
+			background: white;
+		}
+
+		#users th {
+			background-color: darkgrey;
+		}
+
+		#error {
+			color: red;
+		}
+
+		#message {
+			color: green;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div id="error"></div>
+		<div id="message"></div>
+
+		<form id="userAddForm" action="/users" method="POST">
+			<input type="text" name="name" placeholder="Name" />
+			<input type="text" name="email" placeholder="Email" />
+			<input type="submit" value="Add user" />
+		</form>
+
+		<div id="usersContainer">
+			<table id="users">
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>Email</th>
+						<th>To pay</th>
+					</tr>
+				</thead>
+				<tbody>
+				</tbody>
+			</table>
+
+			<button id="reset">Reset</button>
+		</div>
+	</div>
+
+	<script>
+		function clearErrorMessage() {
+			document.getElementById('error').innerHTML = '';
+			document.getElementById('message').innerHTML = '';
+		}
+
+		/**
+		 * @param {string} message
+		 */
+		function setError(message) {
+			clearErrorMessage();
+			document.getElementById('error').innerHTML = message;
+		}
+
+		/**
+		 * @param {string} message
+		 */
+		function setMessage(message) {
+			clearErrorMessage();
+			document.getElementById('message').innerHTML = message;
+		}
+
+		function fetchUsers() {
+			fetch('/users').then((response) => {
+				return response.json();
+			}).then((data) => {
+				const usersTable = document.getElementById('users');
+				const tbody = usersTable.querySelector('tbody');
+
+				tbody.innerHTML = '';
+				data.forEach((user) => {
+					const row = document.createElement('tr');
+					row.innerHTML = `
+						<td>${user.name}</td>
+						<td>${user.email}</td>
+						<td>${user.toPay}</td>
+					`;
+					tbody.appendChild(row);
+				});
+			}).catch((error) => {
+				console.error(error);
+			})
+		}
+
+		fetchUsers()
+
+		document.getElementById('userAddForm').addEventListener('submit', (event) => {
+			event.preventDefault();
+
+			const name = event.target.name.value;
+			const email = event.target.email.value;
+
+			fetch('/users', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					name,
+					email
+				})
+			}).then(async (response) => {
+				if (response.status === 400) {
+					const error = await response.json();
+					throw new Error(error.message);
+				}
+				if (response.status !== 201) {
+					throw new Error('Something went wrong');
+				}
+
+				return response.json();
+			}).then((data) => {
+				fetchUsers();
+				setMessage('User added');
+			}).catch((error) => {
+				setError(error.message);
+			})
+		})
+
+		document.getElementById('reset').addEventListener('click', () => {
+			fetch('/users', {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			}).then((response) => {
+				if (response.status !== 200) {
+					throw new Error('Something went wrong');
+				}
+				fetchUsers();
+				setMessage('Users reset');
+			}).catch((error) => {
+				setError('Failed to reset users');
+			})
+		})
+	</script>
+</body>
+
+</html>
